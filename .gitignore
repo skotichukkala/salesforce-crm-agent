@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+venv/
+data/audit_log.jsonl
+data/results.json
