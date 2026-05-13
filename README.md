@@ -133,5 +133,6 @@ Salesforce's Agentforce platform uses the same core patterns implemented here: M
 
 ---
 
-Author
-Srivalli Kotichukkala
+## Author
+
+**Srivalli Kotichukkala**  
