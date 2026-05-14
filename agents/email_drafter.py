@@ -1,6 +1,8 @@
 import anthropic
 import json
+import time
 from trust_layer.pii_guard import log_audit
+from observability.metrics import log_metric
 
 def draft_email(lead: dict, qualification: dict, routing: dict, api_key: str) -> dict:
     """Draft a personalized follow-up email for a lead."""
@@ -37,29 +39,54 @@ Return JSON with:
 Return ONLY valid JSON, no markdown, no explanation.
 """
 
-    response = client.messages.create(
-        model="claude-sonnet-4-5",
-        max_tokens=800,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    start = time.time()
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=800,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        duration = time.time() - start
 
-    raw = response.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    raw = raw.strip()
+        raw = response.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        raw = raw.strip()
 
-    result = json.loads(raw)
-    result["lead_id"] = lead["id"]
-    result["to"] = lead["email"]
-    result["lead_name"] = lead["name"]
+        result = json.loads(raw)
+        result["lead_id"] = lead["id"]
+        result["to"] = lead["email"]
+        result["lead_name"] = lead["name"]
 
-    log_audit(
-        action="email_draft",
-        input_summary=f"Lead {lead['id']} - {lead['company']}",
-        output_summary=f"Subject: {result['subject'][:80]}",
-        pii_detected=False
-    )
+        log_metric(
+            agent="email_drafter",
+            action=f"draft_email_{lead['id']}",
+            duration_seconds=duration,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            success=True
+        )
 
-    return result
+        log_audit(
+            action="email_draft",
+            input_summary=f"Lead {lead['id']} - {lead['company']}",
+            output_summary=f"Subject: {result['subject'][:80]}",
+            pii_detected=False
+        )
+
+        return result
+
+    except Exception as e:
+        duration = time.time() - start
+        log_metric(
+            agent="email_drafter",
+            action=f"draft_email_{lead['id']}",
+            duration_seconds=duration,
+            input_tokens=0,
+            output_tokens=0,
+            success=False,
+            error=str(e)
+        )
+        raise
