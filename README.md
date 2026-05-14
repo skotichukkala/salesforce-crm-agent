@@ -136,4 +136,4 @@ Salesforce's Agentforce platform uses the same core patterns implemented here: M
 ## Author
 
 **Srivalli Kotichukkala**  
-[LinkedIn](https://linkedin.com/in/srivalli-k) | [GitHub](https://github.com/skotichukkala)
+
